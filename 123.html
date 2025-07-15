@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投资利息计算器 (Pro v10 - 自用版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script>
+        // Tailwind dark mode configuration
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <style>
+        /* Custom base styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Custom switch styles */
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #d1d5db; /* gray-300 */
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 28px;
+            width: 28px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        input:checked + .slider {
+            background-color: #3B82F6; /* blue-500 */
+        }
+        input:checked + .slider:before {
+            transform: translateX(30px);
+        }
+        
+        /* Results area animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        /* Custom scrollbar styles */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #e5e7eb; /* gray-200 */
+            border-radius: 10px;
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1f2937; /* gray-800 */
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #9ca3af; /* gray-400 */
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; /* gray-500 */
+        }
+        
+        /* Theme switcher active state */
+        .theme-btn-active {
+            background-color: #3B82F6 !important;
+            color: white !important;
+        }
+        .dark .theme-btn-active {
+             background-color: #3B82F6 !important;
+             color: white !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-300 transition-colors duration-300">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-screen-2xl relative">
+        
+        <!-- Theme Toggle Button Group -->
+        <div class="absolute top-6 right-6 z-20 bg-slate-200 dark:bg-slate-700 p-1 rounded-full flex items-center space-x-1">
+            <button id="theme-btn-light" class="theme-btn px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 rounded-full transition-colors" data-theme="light">
+                <i class="fas fa-sun mr-1"></i> 日间
+            </button>
+            <button id="theme-btn-dark" class="theme-btn px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 rounded-full transition-colors" data-theme="dark">
+                <i class="fas fa-moon mr-1"></i> 夜间
+            </button>
+            <button id="theme-btn-auto" class="theme-btn px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 rounded-full transition-colors" data-theme="auto">
+                <i class="fas fa-desktop mr-1"></i> 自动
+            </button>
+        </div>
+
+        <header class="text-center mb-12">
+            <h1 class="text-5xl sm:text-6xl font-bold text-slate-900 dark:text-white">投资回报计算器 ✨</h1>
+            <p class="text-slate-500 dark:text-slate-400 mt-3 text-lg">自用计算工具,不构成任何投资建议。</p>
+        </header>
+
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg dark:shadow-2xl dark:shadow-slate-950/50 p-6 sm:p-8 lg:p-12">
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-10">
+                <div class="lg:col-span-2 space-y-8">
+                    <h2 class="text-3xl font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-4">计算参数</h2>
+                    
+                    <div>
+                        <label for="principal" class="text-base font-medium text-slate-600 dark:text-slate-400 mb-2 block">资金投入</label>
+                        <div class="relative">
+                            <i class="fas fa-sack-dollar absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-lg"></i>
+                            <input type="text" inputmode="decimal" id="principal" value="10000" class="w-full text-lg bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg py-4 pl-12 pr-4 text-slate-900 dark:text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="annual-rate" class="text-base font-medium text-slate-600 dark:text-slate-400 mb-2 block">年利率 (%)</label>
+                        <div class="relative">
+                            <i class="fas fa-percentage absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-lg"></i>
+                            <input type="text" inputmode="decimal" id="annual-rate" value="5" class="w-full text-lg bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg py-4 pl-12 pr-4 text-slate-900 dark:text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="duration-value" class="text-base font-medium text-slate-600 dark:text-slate-400 mb-2 block">投资期限</label>
+                        <div class="flex">
+                            <div class="relative flex-grow">
+                                <i class="fas fa-calendar-alt absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-lg z-10"></i>
+                                <input type="text" inputmode="numeric" id="duration-value" value="30" class="w-full text-lg bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-l-lg py-4 pl-12 pr-4 text-slate-900 dark:text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition z-10">
+                            </div>
+                            <select id="duration-unit" class="text-lg bg-slate-200 dark:bg-slate-600 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white rounded-r-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition appearance-none">
+                                <option value="days" selected>天</option>
+                                <option value="months">月</option>
+                                <option value="years">年</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2">
+                        <label for="is-compounding" class="text-base font-medium text-slate-600 dark:text-slate-400">是否复利</label>
+                        <label class="switch relative inline-block w-[64px] h-[36px]">
+                            <input type="checkbox" id="is-compounding">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div id="compounding-frequency-group" class="transition-all duration-300 ease-in-out">
+                        <label for="compounding-frequency" class="text-base font-medium text-slate-600 dark:text-slate-400 mb-2 block">复利频率</label>
+                        <div class="relative">
+                            <i class="fas fa-sync-alt absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-lg"></i>
+                             <select id="compounding-frequency" class="w-full text-lg bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg py-4 pl-12 pr-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition appearance-none">
+                                <option value="daily" selected>天复利</option>
+                                <option value="weekly">周复利</option>
+                                <option value="monthly">月复利</option>
+                                <option value="quarterly">季复利</option>
+                                <option value="semi-annually">半年复利</option>
+                                <option value="annually">年复利</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="error-message" class="text-red-500 text-sm -mt-4 text-center h-5 transition-opacity duration-300"></div>
+
+                    <button id="calculate-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-lg text-xl transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50">
+                        <i class="fas fa-calculator mr-2"></i>开始计算
+                    </button>
+                </div>
+
+                <div id="results-section" class="lg:col-span-3" style="display: none;">
+                    <h2 class="text-3xl font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-4 mb-8">计算结果</h2>
+                    
+                    <div id="results-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="bg-slate-100 dark:bg-slate-700/50 p-6 rounded-xl text-center">
+                            <h3 class="font-medium text-slate-500 dark:text-slate-400 text-base">投资回报率 (ROI)</h3>
+                            <p id="roi-result" class="text-4xl font-bold text-green-600 dark:text-green-400 mt-2">-</p>
+                        </div>
+                        <div id="total-interest-card" class="group relative bg-slate-100 dark:bg-slate-700/50 p-6 rounded-xl text-center">
+                            <h3 class="font-medium text-slate-500 dark:text-slate-400 text-base">预计利息收入</h3>
+                            <p id="total-interest-result" class="text-4xl font-bold text-cyan-600 dark:text-cyan-400 mt-2">-</p>
+                            <!-- Tooltip for daily income -->
+                            <div id="daily-income-tooltip" class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max px-3 py-1.5 text-sm font-medium text-white bg-slate-900 dark:bg-black rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                日均收益: -
+                            </div>
+                        </div>
+                        <div class="bg-slate-100 dark:bg-slate-700/50 p-6 rounded-xl text-center">
+                            <h3 class="font-medium text-slate-500 dark:text-slate-400 text-base">实际年化 (EAR)</h3>
+                            <p id="ear-result" class="text-4xl font-bold text-amber-600 dark:text-amber-400 mt-2">-</p>
+                        </div>
+                    </div>
+                    
+                    <div id="table-container" class="bg-white dark:bg-slate-700/50 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+                        <div class="max-h-[460px] overflow-y-auto custom-scrollbar">
+                            <table class="w-full text-base text-left text-slate-600 dark:text-slate-400">
+                                <thead class="text-sm text-slate-700 dark:text-slate-300 uppercase bg-slate-100 dark:bg-slate-700 sticky top-0 z-10">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-4 text-center">期数 (天)</th>
+                                        <th scope="col" class="px-6 py-4 text-right">期初本金</th>
+                                        <th scope="col" class="px-6 py-4 text-right">当期利息</th>
+                                        <th scope="col" class="px-6 py-4 text-right">利息总计</th>
+                                        <th scope="col" class="px-6 py-4 text-right">本息总计</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="results-tbody" class="divide-y divide-slate-200 dark:divide-slate-700">
+                                    <!-- JS will populate this -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <small class="block text-center mt-10 text-slate-500 text-sm">注意：为简化计算，本工具假设1年=365天，1月≈30.42天 (365/12)。</small>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const principalInput = document.getElementById('principal');
+        const annualRateInput = document.getElementById('annual-rate');
+        const durationValueInput = document.getElementById('duration-value');
+        const durationUnitSelect = document.getElementById('duration-unit');
+        const isCompoundingCheckbox = document.getElementById('is-compounding');
+        const compoundingFrequencyGroup = document.getElementById('compounding-frequency-group');
+        const compoundingFrequencySelect = document.getElementById('compounding-frequency');
+        const calculateBtn = document.getElementById('calculate-btn');
+        
+        const resultsSection = document.getElementById('results-section');
+        const resultsGrid = document.getElementById('results-grid');
+        const tableContainer = document.getElementById('table-container');
+        const roiResult = document.getElementById('roi-result');
+        const totalInterestResult = document.getElementById('total-interest-result');
+        const earResult = document.getElementById('ear-result');
+        const resultsTbody = document.getElementById('results-tbody');
+        const dailyIncomeTooltip = document.getElementById('daily-income-tooltip');
+        const errorMessage = document.getElementById('error-message');
+        
+        const themeButtons = document.querySelectorAll('.theme-btn');
+
+        // --- Theme Management ---
+        const applyTheme = (mode) => {
+            let finalTheme = mode;
+            if (mode === 'auto') {
+                const currentHour = new Date().getHours();
+                finalTheme = (currentHour >= 18 || currentHour < 6) ? 'dark' : 'light';
+            }
+
+            if (finalTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+
+            themeButtons.forEach(btn => {
+                if (btn.dataset.theme === mode) {
+                    btn.classList.add('theme-btn-active');
+                } else {
+                    btn.classList.remove('theme-btn-active');
+                }
+            });
+        };
+
+        themeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const selectedMode = button.dataset.theme;
+                localStorage.setItem('theme', selectedMode);
+                applyTheme(selectedMode);
+            });
+        });
+
+        // --- Input Formatting and Validation ---
+        const allowOnlyIntegers = (e) => {
+            // Replace any non-digit character with an empty string
+            e.target.value = e.target.value.replace(/\D/g, '');
+        };
+
+        // MODIFIED: This function now also limits the number of decimal places to two.
+        const filterDecimalInput = (e) => {
+            let value = e.target.value;
+            // First, remove any character that is not a digit or a dot.
+            value = value.replace(/[^0-9.]/g, '');
+            
+            // Then, ensure there is at most one dot.
+            const parts = value.split('.');
+            if (parts.length > 2) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+
+            // Finally, limit the decimal part to two digits.
+            if (parts.length === 2 && parts[1].length > 2) {
+                value = parts[0] + '.' + parts[1].substring(0, 2);
+            }
+
+            e.target.value = value;
+        };
+
+        principalInput.addEventListener('input', filterDecimalInput);
+        annualRateInput.addEventListener('input', filterDecimalInput);
+        durationValueInput.addEventListener('input', allowOnlyIntegers);
+
+
+        // --- Event Listeners ---
+        isCompoundingCheckbox.addEventListener('change', () => {
+            if (isCompoundingCheckbox.checked) {
+                compoundingFrequencyGroup.style.maxHeight = compoundingFrequencyGroup.scrollHeight + "px";
+                compoundingFrequencyGroup.style.opacity = '1';
+                compoundingFrequencyGroup.style.marginTop = '2rem'; // space-y-8
+            } else {
+                compoundingFrequencyGroup.style.maxHeight = '0';
+                compoundingFrequencyGroup.style.opacity = '0';
+                compoundingFrequencyGroup.style.marginTop = '0';
+            }
+        });
+
+        calculateBtn.addEventListener('click', () => {
+            const principal = parseFloat(principalInput.value);
+            const annualRate = parseFloat(annualRateInput.value) / 100;
+            const durationValue = parseInt(durationValueInput.value);
+            const durationUnit = durationUnitSelect.value;
+            const isCompounding = isCompoundingCheckbox.checked;
+
+            if (isNaN(principal) || isNaN(annualRate) || isNaN(durationValue) || principal <= 0 || annualRate < 0 || durationValue <= 0) {
+                errorMessage.textContent = "请输入有效的、大于零的数值。";
+                setTimeout(() => { errorMessage.textContent = ''; }, 3000);
+                return;
+            }
+            errorMessage.textContent = ''; // Clear error on successful calculation
+
+            let totalDays = 0;
+            if (durationUnit === 'days') {
+                totalDays = durationValue;
+            } else if (durationUnit === 'months') {
+                totalDays = Math.round(durationValue * (365 / 12));
+            } else if (durationUnit === 'years') {
+                totalDays = durationValue * 365;
+            }
+            
+            resultsTbody.innerHTML = '';
+            let cumulativeInterest = 0;
+            const dailyRate = annualRate / 365;
+
+            let compoundingPeriodDays = 0;
+            let n = 0; // Compounding frequency per year
+            if (isCompounding) {
+                switch(compoundingFrequencySelect.value) {
+                    case 'daily': compoundingPeriodDays = 1; n = 365; break;
+                    case 'weekly': compoundingPeriodDays = 7; n = 365 / 7; break;
+                    case 'monthly': compoundingPeriodDays = Math.round(365 / 12); n = 12; break;
+                    case 'quarterly': compoundingPeriodDays = Math.round(365 / 4); n = 4; break; 
+                    case 'semi-annually': compoundingPeriodDays = Math.round(365 / 2); n = 2; break;
+                    case 'annually': compoundingPeriodDays = 365; n = 1; break;
+                }
+            }
+            
+            let interestSinceLastCompounding = 0;
+            let principalForPeriod = principal;
+            let tableRowsHtml = '';
+
+            for (let day = 1; day <= totalDays; day++) {
+                const dailyInterest = principalForPeriod * dailyRate;
+                cumulativeInterest += dailyInterest;
+                
+                if(isCompounding){
+                    interestSinceLastCompounding += dailyInterest;
+                }
+
+                // Throttle table row generation for performance on long durations
+                if (totalDays <= 1000 || day % Math.ceil(totalDays/1000) === 0 || day === totalDays) {
+                    tableRowsHtml += `
+                        <tr class="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                            <td class="px-6 py-3 text-center">${day}</td>
+                            <td class="px-6 py-3 text-right font-mono">${principalForPeriod.toFixed(2)}</td>
+                            <td class="px-6 py-3 text-right font-mono text-green-600 dark:text-green-400">${dailyInterest.toFixed(4)}</td>
+                            <td class="px-6 py-3 text-right font-mono text-cyan-600 dark:text-cyan-400">${cumulativeInterest.toFixed(2)}</td>
+                            <td class="px-6 py-3 text-right font-mono font-bold text-slate-900 dark:text-white">${(principal + cumulativeInterest).toFixed(2)}</td>
+                        </tr>
+                    `;
+                }
+
+                if (isCompounding && (day % compoundingPeriodDays === 0 || day === totalDays)) {
+                    principalForPeriod += interestSinceLastCompounding;
+                    interestSinceLastCompounding = 0;
+                }
+            }
+            resultsTbody.innerHTML = tableRowsHtml;
+
+            const totalReturn = cumulativeInterest;
+            const roi = (totalReturn / principal) * 100;
+            const dailyAverageInterest = totalDays > 0 ? totalReturn / totalDays : 0;
+
+            let ear = annualRate; // Effective Annual Rate
+            if(isCompounding && n > 0) {
+                ear = Math.pow(1 + (annualRate / n), n) - 1;
+            }
+            const earPercentage = ear * 100;
+
+            resultsSection.style.display = 'block';
+            resultsGrid.classList.add('fade-in');
+            tableContainer.classList.add('fade-in');
+            setTimeout(() => {
+                resultsGrid.classList.remove('fade-in');
+                tableContainer.classList.remove('fade-in');
+            }, 500);
+            
+            roiResult.textContent = `${roi.toFixed(2)}%`;
+            totalInterestResult.textContent = `${totalReturn.toFixed(2)}`;
+            earResult.textContent = `${earPercentage.toFixed(2)}%`;
+            dailyIncomeTooltip.textContent = `日均收益: ${dailyAverageInterest.toFixed(4)}`;
+        });
+
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set initial theme based on saved preference or auto
+            const savedMode = localStorage.getItem('theme') || 'auto';
+            applyTheme(savedMode);
+
+            // Set initial state for compounding and calculate
+            isCompoundingCheckbox.dispatchEvent(new Event('change'));
+            calculateBtn.click();
+        });
+    </script>
+</body>
+</html>
