@@ -92,8 +92,14 @@
             color: white !important;
         }
         .dark .theme-btn-active {
-             background-color: #3B82F6 !important;
-             color: white !important;
+            background-color: #3B82F6 !important;
+            color: white !important;
+        }
+
+        /* Compounding frequency transition */
+        #compounding-frequency-group {
+            display: none;
+            transition: opacity 0.3s ease-in-out;
         }
     </style>
 </head>
@@ -167,7 +173,7 @@
                         <label for="compounding-frequency" class="text-base font-medium text-slate-600 dark:text-slate-400 mb-2 block">复利频率</label>
                         <div class="relative">
                             <i class="fas fa-sync-alt absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-lg"></i>
-                             <select id="compounding-frequency" class="w-full text-lg bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg py-4 pl-12 pr-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition appearance-none">
+                            <select id="compounding-frequency" class="w-full text-lg bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg py-4 pl-12 pr-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition appearance-none">
                                 <option value="daily" selected>天复利</option>
                                 <option value="weekly">周复利</option>
                                 <option value="monthly">月复利</option>
@@ -288,27 +294,19 @@
 
         // --- Input Formatting and Validation ---
         const allowOnlyIntegers = (e) => {
-            // Replace any non-digit character with an empty string
             e.target.value = e.target.value.replace(/\D/g, '');
         };
 
-        // MODIFIED: This function now also limits the number of decimal places to two.
         const filterDecimalInput = (e) => {
             let value = e.target.value;
-            // First, remove any character that is not a digit or a dot.
             value = value.replace(/[^0-9.]/g, '');
-            
-            // Then, ensure there is at most one dot.
             const parts = value.split('.');
             if (parts.length > 2) {
                 value = parts[0] + '.' + parts.slice(1).join('');
             }
-
-            // Finally, limit the decimal part to two digits.
             if (parts.length === 2 && parts[1].length > 2) {
                 value = parts[0] + '.' + parts[1].substring(0, 2);
             }
-
             e.target.value = value;
         };
 
@@ -316,17 +314,18 @@
         annualRateInput.addEventListener('input', filterDecimalInput);
         durationValueInput.addEventListener('input', allowOnlyIntegers);
 
-
         // --- Event Listeners ---
         isCompoundingCheckbox.addEventListener('change', () => {
             if (isCompoundingCheckbox.checked) {
-                compoundingFrequencyGroup.style.maxHeight = compoundingFrequencyGroup.scrollHeight + "px";
-                compoundingFrequencyGroup.style.opacity = '1';
-                compoundingFrequencyGroup.style.marginTop = '2rem'; // space-y-8
+                compoundingFrequencyGroup.style.display = 'block';
+                setTimeout(() => {
+                    compoundingFrequencyGroup.style.opacity = '1';
+                }, 10);
             } else {
-                compoundingFrequencyGroup.style.maxHeight = '0';
                 compoundingFrequencyGroup.style.opacity = '0';
-                compoundingFrequencyGroup.style.marginTop = '0';
+                setTimeout(() => {
+                    compoundingFrequencyGroup.style.display = 'none';
+                }, 300);
             }
         });
 
@@ -342,7 +341,7 @@
                 setTimeout(() => { errorMessage.textContent = ''; }, 3000);
                 return;
             }
-            errorMessage.textContent = ''; // Clear error on successful calculation
+            errorMessage.textContent = '';
 
             let totalDays = 0;
             if (durationUnit === 'days') {
@@ -358,7 +357,7 @@
             const dailyRate = annualRate / 365;
 
             let compoundingPeriodDays = 0;
-            let n = 0; // Compounding frequency per year
+            let n = 0;
             if (isCompounding) {
                 switch(compoundingFrequencySelect.value) {
                     case 'daily': compoundingPeriodDays = 1; n = 365; break;
@@ -382,7 +381,6 @@
                     interestSinceLastCompounding += dailyInterest;
                 }
 
-                // Throttle table row generation for performance on long durations
                 if (totalDays <= 1000 || day % Math.ceil(totalDays/1000) === 0 || day === totalDays) {
                     tableRowsHtml += `
                         <tr class="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -406,7 +404,7 @@
             const roi = (totalReturn / principal) * 100;
             const dailyAverageInterest = totalDays > 0 ? totalReturn / totalDays : 0;
 
-            let ear = annualRate; // Effective Annual Rate
+            let ear = annualRate;
             if(isCompounding && n > 0) {
                 ear = Math.pow(1 + (annualRate / n), n) - 1;
             }
@@ -428,11 +426,8 @@
 
         // --- Initial Load ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Set initial theme based on saved preference or auto
             const savedMode = localStorage.getItem('theme') || 'auto';
             applyTheme(savedMode);
-
-            // Set initial state for compounding and calculate
             isCompoundingCheckbox.dispatchEvent(new Event('change'));
             calculateBtn.click();
         });
